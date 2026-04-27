@@ -1,92 +1,49 @@
 <?php
-    session_start();
-    if(isset($_REQUEST['extension']) && isset($_REQUEST['password'])) 
-    {
-        $socket=connect_to_server();
-        $m="/login?extension=".urlencode($_REQUEST['extension'])."&password=".urlencode($_REQUEST['password']);
-        socket_write($socket, $m, strlen($m));
-        socket_set_option($socket,SOL_SOCKET, SO_RCVTIMEO, array("sec"=>5, "usec"=>0));
-        $a=socket_read($socket,2048);
-        $j=json_decode($a);
-        if($j->answer=="KO"){
-            $error=$j->message;
-            socket_close($socket);
-        }
-        if($j->answer=="OK")
-        {
-            $_SESSION["token"]=$j->token;            
-            $_SESSION["extension"]=$_REQUEST['extension'];            
-            $_SESSION["folder"]="INBOX";            
-            header("Location: dashboard.php");
-            socket_close($socket);
-            exit(0);
-        }
-  }
-?>
-<html>
-<head>
-<meta name="robots" content="noindex">
-</head>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
-<title>Asterisk Web Voice Mail</title>
-<body>
-    <div class="container-md">
-    <hr>
-    <div class="row">
-        <div class="col-4">
-        <img src="logo.png" width="256" height="256">
-        </div>
-        <div class="col-4">
-            <h2>Web Voice Mail</h2>
-            <form method="post">
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="basic-addon1">Extension:</span>
-              <input type="text" class="form-control" placeholder="Number" aria-label="extension" name="extension">
-            </div>
-            <div class="input-group mb-3">
-              <span class="input-group-text" id="basic-addon1">Password:</span>
-              <input type="password" class="form-control" placeholder="Password" aria-label="password" name="password">
-            </div>
-            <input type="submit" value="Login" name="login" class="btn btn-primary mb-3">
-            <?php 
-                if(strlen($error)>0){
-                    echo '<div class="alert alert-danger" role="alert">';
-                    echo $error;
-                    echo '</div>';
-                }
-            ?>
-            </form>
-        </div>
-    </div>
-    <hr>
-    <?php 
-        if(strlen($error)>0){
-            echo '<div class="alert alert-danger" role="alert">';
-            echo $error;
-            echo '</div>';
-        }
-    ?>
-    </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
-</body>
-</html>
+session_start();
 
-<?php
-// function to connect to the  asterisk-web-voicemail-server (127.0.0.1:4444)
-function connect_to_server(){
-    $address="127.0.0.1";
-    $port=4444;
-    //connection to asterisk-web-voicemail-server on 
+// --- KONFIGURATION: Hier deine Daten eintragen ---
+$default_extension = "100"; // Deine Nebenstelle
+$default_password  = "deinpw123"; // Dein Passwort
+// ------------------------------------------------
+
+// Wir führen den Login-Prozess sofort automatisch aus
+$socket = connect_to_server();
+$m = "/login?extension=" . urlencode($default_extension) . "&password=" . urlencode($default_password);
+
+socket_write($socket, $m, strlen($m));
+socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array("sec" => 5, "usec" => 0));
+
+$a = socket_read($socket, 2048);
+$j = json_decode($a);
+
+if ($j && $j->answer == "OK") {
+    // Session füllen wie vorher
+    $_SESSION["token"]     = $j->token;            
+    $_SESSION["extension"] = $default_extension;            
+    $_SESSION["folder"]    = "INBOX";            
+    
+    socket_close($socket);
+    
+    // Direkt weiter zum Dashboard
+    header("Location: dashboard.php");
+    exit(0);
+} else {
+    // Falls der Server doch mal "Nein" sagt oder nicht erreichbar ist
+    die("Automatischer Login fehlgeschlagen. Antwort vom Server: " . ($j->message ?? 'Keine Antwort'));
+}
+
+// Die Verbindungsfunktion bleibt gleich, damit der Socket-Aufruf klappt
+function connect_to_server() {
+    $address = "127.0.0.1";
+    $port = 4444;
     $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
     if ($socket === false) {
-        echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
-        exit(1);
+        die("socket_create() fehlgeschlagen: " . socket_strerror(socket_last_error()));
     }
     $result = socket_connect($socket, $address, $port);
     if ($result === false) {
-        echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
-        exit(1);
+        die("socket_connect() fehlgeschlagen. Server (Asterisk) unter $address:$port nicht erreichbar.");
     }
-    return($socket);    
+    return $socket;    
 }
 ?>
