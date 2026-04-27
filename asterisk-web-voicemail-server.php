@@ -457,7 +457,7 @@ function onConnect( $client ) {
                         	$dfpt=str_replace("/".$folder."/","/Old/",$fpt);
                         	$dfpw=str_replace("/".$folder."/","/Old/",$fpw);
                         	$dfpg=str_replace("/".$folder."/","/Old/",$fpg);
-                        	echo "rename: ".$fp." ".$fpd."\n";
+                        	echo "rename: ".$fp." ".$dfp."\n";
                         	rename($fp,$dfp);
                         	echo "rename: ".$fpt." ".$dfpt."\n";
                         	rename($fpt,$dfpt);
