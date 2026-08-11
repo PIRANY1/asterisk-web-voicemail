@@ -222,7 +222,15 @@ function get_audio_data($folder,$filename,$token){
     $socket=connect_to_server();
     socket_write($socket, $m, strlen($m));
     socket_set_option($socket,SOL_SOCKET, SO_RCVTIMEO, array("sec"=>15, "usec"=>0));
-    $a=socket_read($socket,10000000);
-    return($a);    
+    $a = "";
+    while (true) {
+        $chunk = socket_read($socket, 65536, PHP_BINARY_READ);
+        if ($chunk === false || $chunk === "") {
+            break;
+        }
+        $a .= $chunk;
+    }
+    socket_close($socket);
+    return $a;
 }
 ?>

@@ -619,9 +619,18 @@ class SocketClient {
 		$this->connection = $connection;
 	}
 	
-	public function send( $message ) {	
-		socket_write($this->connection, $message, strlen($message));
+	public function send( $message ) {
+    $total = strlen($message);
+    $sent  = 0;
+    while ($sent < $total) {
+        $bytes = @socket_write($this->connection, substr($message, $sent), $total - $sent);
+        if ($bytes === false) {
+            break; // Verbindungsfehler
+        }
+        $sent += $bytes;
+    }
 	}
+
 	
 	public function read($len = 1024) {
 		if ( ( $buf = @socket_read( $this->connection, $len, PHP_BINARY_READ  ) ) === false ) {
